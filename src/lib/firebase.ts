@@ -13,6 +13,7 @@ import { initializeAnalytics, logEvent } from 'firebase/analytics';
 import {
 	GoogleAuthProvider,
 	OAuthProvider,
+	connectAuthEmulator,
 	getAuth,
 	isSignInWithEmailLink,
 	sendSignInLinkToEmail,
@@ -20,24 +21,42 @@ import {
 	signInWithPopup,
 	signOut
 } from 'firebase/auth';
+import { connectFirestoreEmulator, doc, getFirestore, setDoc } from 'firebase/firestore';
+import { connectStorageEmulator, getStorage, ref, uploadString } from 'firebase/storage';
 
+import { dev } from '$app/environment';
 import { initializeApp } from 'firebase/app';
 import type { UserCredential } from 'firebase/auth';
 import { rootURL } from './stores/data';
 
-const firebaseApp = initializeApp(config);
-export const auth = getAuth(firebaseApp);
+export const app = initializeApp(config);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+export const anal = initializeAnalytics(app);
 
-export const anal = initializeAnalytics(firebaseApp);
+if (dev || import.meta.env.MODE === 'ci') {
+	connectAuthEmulator(auth, 'http://localhost:9099');
+	connectFirestoreEmulator(db, 'localhost', 8080);
+	connectStorageEmulator(storage, 'localhost', 9199);
 
-export function GAPageView() {
-	logEvent(anal, 'page_view', {
-		page_location: window.location.href
+	// Seed Firestore
+	setDoc(doc(db, 'posts', 'test'), {
+		title: 'Hi Mom',
+		content: 'this is a test'
 	});
-}
 
-export function GAEvent(name: string, data?: any) {
-	logEvent(anal, name, data);
+	// Create a reference to the file to create
+	const fileRef = ref(storage, 'test.txt');
+
+	// Upload a string to the file
+	uploadString(fileRef, 'Hello, world!', 'raw')
+		.then(() => {
+			console.log('File created successfully!');
+		})
+		.catch((error) => {
+			console.error('Error creating file:', error);
+		});
 }
 
 export async function signInWithGoogle() {
@@ -54,13 +73,13 @@ export async function signInWithApple() {
 // TODO update url in production
 export async function sendPasswordlessEmail(email: string, url?: string) {
 	const actionCodeSettings = {
-		// url: 'https://fireship.io/dashboard',
 		url: url ?? `${rootURL}/dashboard`, // TODO
 		// This must be true.
 		handleCodeInApp: true
 	};
 
-	let res: any, serverError: string;
+	let res: any,
+		serverError = '';
 	try {
 		await sendSignInLinkToEmail(auth, email, actionCodeSettings);
 		window.localStorage.setItem('emailForSignIn', email);
@@ -78,7 +97,7 @@ export async function passwordlessSignin() {
 			email = window.prompt('Please provide your email for confirmation');
 		}
 
-		const credential = signInWithEmailLink(auth, email, window.location.href);
+		const credential = signInWithEmailLink(auth, email!, window.location.href);
 		window.localStorage.removeItem('emailForSignIn');
 		return loginHandler(credential);
 	} else {
@@ -88,28 +107,39 @@ export async function passwordlessSignin() {
 
 export async function firebaseSignOut() {
 	await signOut(auth);
-	toast.set({
-		icon: '👋',
-		message: 'Thanks for hanging out, see ya around!'
-	});
+	// toast.set({
+	// 	icon: '👋',
+	// 	message: 'Thanks for hanging out, see ya around!'
+	// });
 }
 
 async function loginHandler(promise: Promise<UserCredential>) {
-	let res: any, serverError: string;
+	let res: any,
+		serverError = '';
 	try {
 		res = await promise;
-		modal.set(null);
-		toast.set({
-			message: 'Access granted! Logged into the mainframe!',
-			type: 'success'
-		});
-	} catch (err) {
+		// modal.set(null);
+		// toast.set({
+		// 	message: 'Access granted! Logged into the mainframe!',
+		// 	type: 'success'
+		// });
+	} catch (err: any) {
 		serverError = err.message;
 		console.error(err);
-		toast.set({
-			message: serverError,
-			type: 'error'
-		});
+		// toast.set({
+		// 	message: serverError,
+		// 	type: 'error'
+		// });
 	}
 	return { res, serverError };
+}
+
+export function GAPageView() {
+	logEvent(anal, 'page_view', {
+		page_location: window.location.href
+	});
+}
+
+export function GAEvent(name: string, data?: any) {
+	logEvent(anal, name, data);
 }

@@ -34,8 +34,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@auth/core": "^0.16.0",
-		"@auth/sveltekit": "^0.3.7",
 		"firebase": "^10.4.0"
 	}
 }
