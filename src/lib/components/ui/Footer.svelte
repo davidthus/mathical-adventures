@@ -1,4 +1,5 @@
 <script>
+	import { modal } from '$lib/stores/modal';
 	import SignedOut from '../SignedOut.svelte';
 </script>
 
@@ -8,6 +9,6 @@
 
 	<a href="/dashboard">Dashboard</a>
 	<SignedOut>
-		<button>Login</button>
+		<button on:click={() => modal.set('default')}>Login</button>
 	</SignedOut>
 </footer>

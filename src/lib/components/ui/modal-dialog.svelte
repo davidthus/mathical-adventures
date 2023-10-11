@@ -24,3 +24,9 @@
 		<slot />
 	</div>
 </div>
+
+<style>
+	.show {
+		display: flex;
+	}
+</style>
