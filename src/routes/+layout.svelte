@@ -3,6 +3,7 @@
 	import Footer from '$lib/components/ui/Footer.svelte';
 	import Header from '$lib/components/ui/Header.svelte';
 	import { auth, db as firestore, storage } from '$lib/firebase';
+	import '../app.css';
 </script>
 
 <FirebaseApp {auth} {firestore} {storage}>
